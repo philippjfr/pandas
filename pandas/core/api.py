@@ -18,7 +18,7 @@ from pandas.core.panel import Panel, WidePanel
 from pandas.core.panel4d import Panel4D
 from pandas.core.groupby import groupby
 from pandas.core.reshape import (pivot_simple as pivot, get_dummies,
-                                 lreshape, wide_to_long)
+                                 lreshape, wide_to_long, from_dummies)
 
 from pandas.core.indexing import IndexSlice
 from pandas.tseries.offsets import DateOffset

@@ -1180,6 +1180,66 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             dummy_cols = dummy_cols[1:]
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
+def from_dummies(data, categories=None, ordered=None, prefixes=None):
+    '''
+    The inverse transformation of ``pandas.get_dummies``.
+
+    Parameters
+    ----------
+    data : DataFrame
+    categories : Index or list of Indexes
+    ordered : boolean or list of booleans
+    prefixes : str or list of str
+
+    Returns
+    -------
+    transformed : Series or DataFrame
+
+    Notes
+    -----
+    To recover a Categorical, you must provide the categories and
+    whether it is ordered. To invert a DataFrame that includes either
+    multiple sets of dummy-encoded columns or a mixture of dummy-encoded
+    columns and regular columns, you must specify ``prefixes``.
+
+    See Also
+    --------
+    pandas.get_dummies
+    '''
+    from pandas.tools.merge import concat
+    # TODO: should we accept a `name` parameter, only makes sense for 1d
+
+    # TODO: broken right now for pd.get_dummeis(series, prefix=)
+    # Need to handle scalar prefix separate
+    if prefixes is None:
+        # assume we have pd.get_dummies(Series)
+        codes = np.argmax(np.asarray(data), axis=1)
+        if categories is not None:
+            trn = Categorical.from_codes(codes, categories, ordered=ordered)
+        else:
+            trn = data.columns[codes]
+
+        return Series(trn, index=data.index)
+    # TODO: NaN
+    elif is_list_like(prefixes):
+        series = []
+        todo = data.columns
+
+        for prefix in prefixes:
+            cols = data.columns[data.columns.astype(str).str.startswith(prefix)]
+            subdf = data[cols]
+            series.append(_invert_dummy_set(subdf, name=prefix))
+            todo = todo.drop(cols)
+        return concat([data[todo]] + series, axis=1)
+
+def _invert_dummy_set(data, categories=None, ordered=None, prefix=None,
+                      name=None):
+    codes = np.argmax(np.asarray(data), axis=1)
+    if categories is not None:
+        trn = Categorical.from_codes(codes, categories, ordered=ordered)
+    else:
+        trn = data.columns[codes]
+    return Series(trn, index=data.index, name=name)
 
 def make_axis_dummies(frame, axis='minor', transform=None):
     """

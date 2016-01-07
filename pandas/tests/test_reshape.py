@@ -581,6 +581,39 @@ class TestGetDummies(tm.TestCase):
 class TestGetDummiesSparse(TestGetDummies):
     sparse = True
 
+class TestFromDummies(tm.TestCase):
+
+    plain_series = pd.Series([1, 1, 2, 3, 3], name='ints')
+    plain_series_str = pd.Series(list('aabcc'), name='strs')
+    cat_all = pd.Series(pd.Categorical(list('aabcc')), name='cat-all')
+    cat_addnl = pd.Series(pd.Categorical(list('aabcc'),
+                                         categories=list('abcd'),
+                                         ordered=True), name='cat-addnl')
+
+    def test_series_plain(self):
+        result = pd.from_dummies(pd.get_dummies(self.plain_series))
+        tm.assert_series_equal(result, self.plain_series, check_names=False)
+
+        result = pd.from_dummies(pd.get_dummies(self.plain_series_str))
+        tm.assert_series_equal(result, self.plain_series_str, check_names=False)
+
+    def test_series_cat_all(self):
+        result = pd.from_dummies(pd.get_dummies(self.cat_all),
+                                 categories=self.cat_all.cat.categories,
+                                 ordered=self.cat_all.cat.ordered)
+        tm.assert_series_equal(result, self.cat_all, check_names=False)
+
+    def test_series_cat_addnl(self):
+        result = pd.from_dummies(pd.get_dummies(self.cat_addnl),
+                                 categories=self.cat_addnl.cat.categories,
+                                 ordered=self.cat_addnl.cat.ordered)
+        tm.assert_series_equal(result, self.cat_addnl, check_names=False)
+
+    def test_df_plain(self):
+        df = pd.Series(np.random.randn(len(self.plain_series)), name='non')
+        df = pd.concat([df, self.plain_series], axis=1)
+        result = pd.from_dummies(pd.get_dummies(df), prefixes='ints')
+        tm.assert_frame_equal(result[df.columns], df)
 
 class TestMakeAxisDummies(tm.TestCase):
 
