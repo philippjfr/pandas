@@ -28,8 +28,8 @@ class TestMelt(tm.TestCase):
         self.var_name = 'var'
         self.value_name = 'val'
 
-        self.df1 = pd.DataFrame([[1.067683, -1.110463, 0.20867
-                                  ], [-1.321405, 0.368915, -1.055342],
+        self.df1 = pd.DataFrame([[1.067683, -1.110463, 0.20867],
+                                 [-1.321405, 0.368915, -1.055342],
                                  [-0.807333, 0.08298, -0.873361]])
         self.df1.columns = [list('ABC'), list('abc')]
         self.df1.columns.names = ['CAP', 'low']
@@ -151,7 +151,7 @@ class TestMelt(tm.TestCase):
 
     def test_col_level(self):
         res1 = melt(self.df1, col_level=0)
-        res2 = melt(self.df1, col_level='CAP')
+        res2 = melt(self.df1, col_level='CAP')  # noqa
         self.assertEqual(res1.columns.tolist(), ['CAP', 'value'])
         self.assertEqual(res2.columns.tolist(), ['CAP', 'value'])
 
@@ -732,6 +732,7 @@ class TestWideToLong(tm.TestCase):
                     "A": ['a', 'b', 'c', 'd', 'e', 'f'],
                     "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
                     "year": [1970, 1970, 1970, 1980, 1980, 1980],
+                    "yer": [1970, 1970, 1970, 1980, 1980, 1980],
                     "id": [0, 1, 2, 0, 1, 2]}
         exp_frame = DataFrame(exp_data)
         exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
