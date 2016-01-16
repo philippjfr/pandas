@@ -6,7 +6,8 @@ import itertools
 
 import numpy as np
 
-from pandas.types.common import _ensure_platform_int, is_list_like
+from pandas.types.common import (
+        _ensure_platform_int, is_list_like, is_string_like)
 from pandas.types.cast import _maybe_promote
 from pandas.types.missing import notnull
 import pandas.types.concat as _concat
@@ -24,7 +25,7 @@ from pandas.core.groupby import get_group_index, _compress_group_index
 import pandas.core.algorithms as algos
 import pandas.algos as _algos
 
-from pandas.core.index import MultiIndex, _get_na_value
+from pandas.core.index import Index, MultiIndex, _get_na_value
 
 
 class _Unstacker(object):
@@ -1180,16 +1181,18 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             dummy_cols = dummy_cols[1:]
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
-def from_dummies(data, categories=None, ordered=None, prefixes=None):
+def from_dummies(data, categories=None, ordered=None, names=None,
+                 prefix_sep=None):
     '''
     The inverse transformation of ``pandas.get_dummies``.
 
     Parameters
     ----------
     data : DataFrame
-    categories : Index or list of Indexes
+    catugories : Index or list of Indexes
     ordered : boolean or list of booleans
-    prefixes : str or list of str
+    names : str or list of str
+    prefix_sep : str or list or str
 
     Returns
     -------
@@ -1206,31 +1209,36 @@ def from_dummies(data, categories=None, ordered=None, prefixes=None):
     --------
     pandas.get_dummies
     '''
-    from pandas.tools.merge import concat
-    # TODO: should we accept a `name` parameter, only makes sense for 1d
+    # from pandas.tools.merge import concat
 
-    # TODO: broken right now for pd.get_dummeis(series, prefix=)
     # Need to handle scalar prefix separate
-    if prefixes is None:
+    if names is None or is_string_like(names):
         # assume we have pd.get_dummies(Series)
+        # have datatype issues here if name is not None
         codes = np.argmax(np.asarray(data), axis=1)
         if categories is not None:
             trn = Categorical.from_codes(codes, categories, ordered=ordered)
         else:
-            trn = data.columns[codes]
+            if prefix_sep is not None:
+                columns = Index([x.split(prefix_sep)[1] for x in data.columns])
+                # infer name as <name>_0, <name>_1, ...
+                names = names or data.columns[0].split(prefix_sep)[0]
+            else:
+                columns = data.columns
+            trn = columns[codes]
 
-        return Series(trn, index=data.index)
+        return Series(trn, index=data.index, name=names)
     # TODO: NaN
-    elif is_list_like(prefixes):
-        series = []
-        todo = data.columns
+    # elif is_list_like(prefixes):
+    #     series = []
+    #     todo = data.columns
 
-        for prefix in prefixes:
-            cols = data.columns[data.columns.astype(str).str.startswith(prefix)]
-            subdf = data[cols]
-            series.append(_invert_dummy_set(subdf, name=prefix))
-            todo = todo.drop(cols)
-        return concat([data[todo]] + series, axis=1)
+    #     for prefix in prefixes:
+    #         cols = data.columns[data.columns.astype(str).str.startswith(prefix)]
+    #         subdf = data[cols]
+    #         series.append(_invert_dummy_set(subdf, name=prefix))
+    #         todo = todo.drop(cols)
+    #     return concat([data[todo]] + series, axis=1)
 
 def _invert_dummy_set(data, categories=None, ordered=None, prefix=None,
                       name=None):

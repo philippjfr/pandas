@@ -589,31 +589,81 @@ class TestFromDummies(tm.TestCase):
     cat_addnl = pd.Series(pd.Categorical(list('aabcc'),
                                          categories=list('abcd'),
                                          ordered=True), name='cat-addnl')
+    plain_frame = pd.concat([plain_series, plain_series_str], axis=1)
 
+    # TODO: test other indicies
     def test_series_plain(self):
-        result = pd.from_dummies(pd.get_dummies(self.plain_series))
-        tm.assert_series_equal(result, self.plain_series, check_names=False)
+        dum = pd.get_dummies(self.plain_series)
+        result = pd.from_dummies(dum)
+        expected = pd.Series([1, 1, 2, 3, 3])
+        tm.assert_series_equal(result, expected)
 
-        result = pd.from_dummies(pd.get_dummies(self.plain_series_str))
-        tm.assert_series_equal(result, self.plain_series_str, check_names=False)
+        result = pd.from_dummies(dum, names='A')
+        expected.name = 'A'
+        tm.assert_series_equal(result, expected)
 
-    def test_series_cat_all(self):
-        result = pd.from_dummies(pd.get_dummies(self.cat_all),
-                                 categories=self.cat_all.cat.categories,
-                                 ordered=self.cat_all.cat.ordered)
-        tm.assert_series_equal(result, self.cat_all, check_names=False)
+    def test_series_str(self):
+        dum = pd.get_dummies(self.plain_series_str)
+        result = pd.from_dummies(dum)
+        expected = pd.Series(list('aabcc'))
+        tm.assert_series_equal(result, expected)
 
-    def test_series_cat_addnl(self):
-        result = pd.from_dummies(pd.get_dummies(self.cat_addnl),
-                                 categories=self.cat_addnl.cat.categories,
-                                 ordered=self.cat_addnl.cat.ordered)
-        tm.assert_series_equal(result, self.cat_addnl, check_names=False)
+        result = pd.from_dummies(dum, names='A')
+        expected.name = 'A'
+        tm.assert_series_equal(result, expected)
 
-    def test_df_plain(self):
-        df = pd.Series(np.random.randn(len(self.plain_series)), name='non')
-        df = pd.concat([df, self.plain_series], axis=1)
-        result = pd.from_dummies(pd.get_dummies(df), prefixes='ints')
-        tm.assert_frame_equal(result[df.columns], df)
+
+    def test_series_prefix(self):
+        dum = pd.get_dummies(self.plain_series, prefix='A')
+        result = pd.from_dummies(dum, names='A', prefix_sep='_')
+        expected = pd.Series(['1', '1', '2', '3', '3'], name='A')
+        tm.assert_series_equal(result, expected)
+
+        # infer name
+        result = pd.from_dummies(dum, prefix_sep='_')
+        tm.assert_series_equal(result, expected)
+
+        dum = pd.get_dummies(self.plain_series, prefix='A', prefix_sep='|')
+        result = pd.from_dummies(dum, names='A', prefix_sep='|')
+        tm.assert_series_equal(result, expected)
+
+        # override name
+        result = pd.from_dummies(dum, names='B', prefix_sep='|')
+        expected.name = 'B'
+        tm.assert_series_equal(result, expected)
+
+    def test_cat(self):
+        for cat in [self.cat_all, self.cat_addnl]:
+            dum = pd.get_dummies(cat)
+            result = pd.from_dummies(dum, categories=cat.cat.categories,
+                                     names=cat.name)
+            tm.assert_series_equal(result, cat)
+
+            result = pd.from_dummies(dum)
+            expected = Series(['a', 'a', 'b', 'c', 'c'])
+            tm.assert_series_equal(result, expected)
+
+            dum = pd.get_dummies(cat, prefix='A')
+            result = pd.from_dummies(dum, categories=cat.cat.categories,
+                                     names=cat.name, prefix_sep='_')
+            tm.assert_series_equal(result, cat)
+
+            dum = pd.get_dummies(cat, prefix='A', prefix_sep='|')
+            result = pd.from_dummies(dum, categories=cat.cat.categories,
+                                     names=cat.name, prefix_sep='|')
+            tm.assert_series_equal(result, cat)
+
+    def test_frame(self):
+        dum = pd.get_dummies(self.plain_frame)
+        result = pd.from_dummies(dum, names=['strs'])
+        expected = self.plain_frame
+        tm.assert_frame_equal(result, expected)
+
+    # def test_df_plain(self):
+    #     df = pd.Series(np.random.randn(len(self.plain_series)), name='non')
+    #     df = pd.concat([df, self.plain_series], axis=1)
+    #     result = pd.from_dummies(pd.get_dummies(df), prefixes='ints')
+    #     tm.assert_frame_equal(result[df.columns], df)
 
 class TestMakeAxisDummies(tm.TestCase):
 
